@@ -17,6 +17,20 @@ The following scenario should paint a clearer picture of what the extension does
 7. System generates a response.
 8. __Model Ducking__ unload the model again, freeing up VRAM.
 
+## Instructions
+
+### How to Activate Model Ducking
+
+Enable Model Ducking by appending it to the `--extensions` parameter on startup, or by enabling it from the Session tab.
+
+Once the extension is enabled, Model Ducking has to be activated from the `Chat` tab by checking the `Activate Model Ducking` checkbox.
+
+### How to use with API (i.e. SillyTavern)
+
+In the `Chat` tab, check the `Using API` checkbox. 
+
+__Important Note__: `Using API` must __NOT__ be checked when you do your prompts from the text-generation-webui. Only have it checked when using from outside (i.e. SillyTavern).
+
 ## Side-effect
 
 There is an obvious additional latency after subsequent prompts to reload the last model used. Do note that the latency is limited to the reloading of the last model, and does not directly impact the model's ability to generate responses (i.e. tokens per second).
