@@ -1,4 +1,6 @@
 import gradio as gr
+import time
+import os
 
 from modules import shared, text_generation
 from modules.models import load_model, clear_torch_cache
@@ -8,17 +10,21 @@ from modules.logging_colors import logger
 params = {
     "display_name": "Model Ducking",
     "activate": True,
-    "last_model": ""
+    "last_model": "",
+    "timeout_seconds": int(os.getenv("MODEL_DUCKING_TIMEOUT_SECONDS", 0)),
+    "in_flight": False
 }
 
 def load_last_model():
     if not params['activate']:
         return False
-    
+
+    reset_timeout()
+
     if shared.model_name != 'None' or shared.model is not None:
         logger.info(f"\"{shared.model_name}\" is currently loaded. No need to reload the last model.")
         return False
-    
+
     if params['last_model']:
         shared.model, shared.tokenizer = load_model(params['last_model'])
 
@@ -38,11 +44,28 @@ def history_modifier(history):
 
     return history
 
+def reset_timeout():
+    params['timeout_start'] = time.time()
+
+def timeout_unload_model():
+    if not params['activate'] or params['in_flight']:
+        return
+    if params['timeout_seconds'] == 0:
+        return
+    if time.time() - params['timeout_start'] < params['timeout_seconds']:
+        return
+    unload_model_except_tokenizer()
+    logger.info("Model has been unloaded due to timeout.")
+
 def output_modifier(string, state, is_chat=False):
     if not params['activate']:
         return string
-    
+
+    params['in_flight'] = True # request in progress
+    params['timeout_start'] = time.time()
     unload_model_except_tokenizer()
+    params['in_flight'] = False # request completed
+    timeout_unload_model()
     logger.info("Model has been temporarily unloaded until next prompt.")
 
     return string
