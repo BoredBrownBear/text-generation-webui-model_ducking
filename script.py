@@ -15,7 +15,7 @@ from modules.models import load_model, unload_model
 params = {
     "display_name": "Model Ducking",
     "last_model": "",
-    "timeout_seconds": int(os.getenv("MODEL_DUCKING_TIMEOUT_SECONDS", 0)),
+    "timeout_seconds": int(os.getenv("MODEL_DUCKING_TIMEOUT_SECONDS", 300)),
     "in_flight": False,
     "activate": False,
     "is_api": False,
