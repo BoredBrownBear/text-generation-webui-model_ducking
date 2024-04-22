@@ -1,5 +1,8 @@
 import sys
 
+from fastapi import Request
+from fastapi.responses import StreamingResponse
+
 import gradio as gr
 import time
 import os
@@ -13,7 +16,7 @@ params = {
     "display_name": "Model Ducking",
     "last_model": "",
     "timeout_seconds": int(os.getenv("MODEL_DUCKING_TIMEOUT_SECONDS", 0)),
-    "in_flight": False
+    "in_flight": False,
     "activate": False,
     "is_api": False,
     "last_model": "",
@@ -64,7 +67,10 @@ def timeout_unload_model():
         return
     if time.time() - params['timeout_start'] < params['timeout_seconds']:
         return
-    unload_model_except_tokenizer()
+    if shared.model is None or shared.model_name == "None":
+        return
+
+    unload_model()
     logger.info("Model has been unloaded due to timeout.")
 
 def output_modifier(string, state, is_chat=False):
@@ -73,9 +79,10 @@ def output_modifier(string, state, is_chat=False):
 
     params['in_flight'] = True # request in progress
     params['timeout_start'] = time.time()
-    unload_model_except_tokenizer()
-    params['in_flight'] = False # request completed
-    timeout_unload_model()
+    if not params["is_api"]:
+        params['in_flight'] = False # request completed
+        timeout_unload_model()
+
     logger.info("Model has been temporarily unloaded until next prompt.")
     if not params["is_api"]:
         unload_model_all()
@@ -97,7 +104,7 @@ async def after_openai_completions(request: Request, call_next):
         load_last_model()
 
         response = await call_next(request)
-        
+
         async def stream_chunks():
             async for chunk in response.body_iterator:
                 yield chunk
